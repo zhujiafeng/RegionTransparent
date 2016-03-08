@@ -1,19 +1,30 @@
 using namespace std;
 #include <iostream>
 #include "TranspEdge.h"
+#include "gdal_utils.h"
 int main(void){
 	
 		typedef unsigned char T;
-		const char*pFilename = "D:\\TU\\TE_Data\\4.png";
+		const char*pFilename = "D:\\TU\\TE_Data\\5.png";
 		//const char*pFilename2 = "D:\\TU\\TE_Data\\1.png";
 		GDALAllRegister();
 		GDALDataset*pSrc,*pSrc2;
 		pSrc = (GDALDataset*)GDALOpen(pFilename, GA_ReadOnly);
+		T** ppVal=ReadData<T>(pSrc);
+		int sizeX = pSrc->GetRasterXSize();
+		int sizeY = pSrc->GetRasterYSize();
+		int bandCount = pSrc->GetRasterCount();
+		T*pBuffer = new T[sizeX*sizeY*bandCount];
+		for (int i = 0; i < bandCount; ++i)
+			memcpy_s(pBuffer + i*(sizeX*sizeY), sizeX*sizeY, ppVal[i], sizeX*sizeY);
+		int nLength = bandCount*sizeX*sizeY;
+
 		//TransparentEdge<T>(pSrc, 50);
 		WHU::TranspEdge<T> te;
 		te.InitImageSize(pSrc->GetRasterXSize(), pSrc->GetRasterYSize());
 		//te.TransparentEdge(pSrc);
-		te.TransparentEdge(pSrc);
+		te.TransparentEdge(pBuffer,nLength);
+		//te.TransparentEdge(pSrc);
 		te.Close();
 	return 0;
 }

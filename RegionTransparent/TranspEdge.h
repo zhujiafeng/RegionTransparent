@@ -38,16 +38,18 @@ namespace WHU{
 		TranspEdge();
 		TranspEdge(int sizeX, int sizeY);
 		bool InitImageSize(int sizeX, int sizeY);
-		int TransparentEdge(GDALDataset*&pSrc,int minRegSize=DEFAULT_MIN_REG_SIZE);
+		//int TransparentEdge(GDALDataset*&pSrc,int minRegSize=DEFAULT_MIN_REG_SIZE);
+		int TransparentEdge(T *&pBuffer, int& nLength);
+		int TransparentEdge(T *&pBuffer, int& nLength, int sizeX, int sizeY);
 		//TranspEdge(GDALDataset*pDataset, int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//int Initialize();
 		void Close();
 		virtual ~TranspEdge();
 	private:
-		void ReadData(GDALDataset*pSrc, int sizeX,int sizeY,int bandCount);
+		//void ReadData(GDALDataset*pSrc, int sizeX,int sizeY,int bandCount);
 		bool makeTmpFilename(const char* pFile, char*&pNew);
 		vector<pixel_loc_t> * Grey_RegionGrowth(T* pImgVal, int sizeX, int sizeY, pixel_loc_t seed, vector<T>*pNoises, int minRegSize, bool* visited);
-		void Img2Grey(T min,T max);
+		void Img2Grey(T**ppVal,T min,T max);
 		bool InitImgValArray(int sizeX,int sizeY);
 		bool InitVectors(int sizeX, int sizeY);
 		bool InitVisitedArray(int sizeX, int sizeY, bool defVal = false);
@@ -61,12 +63,12 @@ namespace WHU{
 		};
 		
 	private:
-		T ** m_ppImgVal;  //图像值
+		//T ** m_ppImgVal;  //图像值
 		T * m_pGrey;   //经处理的中间灰度图像
 		int m_sizeX;     //图像宽
 		int m_sizeY;     //图像长
 		int m_bandCount;    //图像波段数
-		GDALDataset* m_pSrc;//原图像指针
+		//GDALDataset* m_pSrc;//原图像指针
 		int m_minRegSize;//区域阈值
 		greyArray * m_pNoises;//候选噪点值
 		pixelArray * m_pSeeds;//区域生长种子点
@@ -94,7 +96,7 @@ template<typename T>
 WHU::TranspEdge<T>::TranspEdge(int sizeX, int sizeY)
 {
 	InitImageSize(sizeX, sizeY);
-	m_IsInited=true;
+	m_IsInited = true;
 }
 
 template<typename T>
@@ -113,10 +115,10 @@ bool WHU::TranspEdge<T>::InitVisitedArray(int sizeX, int sizeY, bool defVal){
 
 template<typename T>
 bool WHU::TranspEdge<T>::InitImgValArray(int sizeX, int sizeY){
-	m_ppImgVal = new T*[4];
+	/*m_ppImgVal = new T*[4];
 	for (int i = 0; i < 4; ++i){
 		m_ppImgVal[i] = (T*)CPLMalloc(sizeX*sizeY);
-	}
+	}*/
 	m_pGrey = (T*)CPLMalloc(sizeX*sizeY);
 	return true;
 }
@@ -134,14 +136,14 @@ bool WHU::TranspEdge<T>::InitVectors(int sizeX, int sizeY){
 	return true;
 }
 
-template<typename T>
-void WHU::TranspEdge<T>::ReadData(GDALDataset*pSrc, int sizeX, int sizeY, int bandCount){
-		T **ppVal = m_ppImgVal;
-		for (int i = 0; i < bandCount; ++i){
-			GDALRasterBand *pBand = pSrc->GetRasterBand(i + 1);
-			pBand->RasterIO(GF_Read, 0, 0, sizeX, sizeY, ppVal[i], sizeX, sizeY, pBand->GetRasterDataType(), 0, 0);
-		}
-}
+//template<typename T>
+//void WHU::TranspEdge<T>::ReadData(GDALDataset*pSrc, int sizeX, int sizeY, int bandCount){
+//		T **ppVal = m_ppImgVal;
+//		for (int i = 0; i < bandCount; ++i){
+//			GDALRasterBand *pBand = pSrc->GetRasterBand(i + 1);
+//			pBand->RasterIO(GF_Read, 0, 0, sizeX, sizeY, ppVal[i], sizeX, sizeY, pBand->GetRasterDataType(), 0, 0);
+//		}
+//}
 
 template<typename T>
 bool WHU::TranspEdge<T>::InitImageSize(int sizeX, int sizeY){
@@ -154,69 +156,69 @@ bool WHU::TranspEdge<T>::InitImageSize(int sizeX, int sizeY){
 	return true;
 }
 
-template<typename T>
-int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
-	GDALDataset*pTmpSrc = pSrc;
-	m_bandCount = pTmpSrc->GetRasterCount();
-	//reInit data
-	m_pTransRegion->clear();
-	SetArrayVal<bool>(m_visited, m_sizeX*m_sizeY, false);
+//template<typename T>
+//int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
+//	GDALDataset*pTmpSrc = pSrc;
+//	m_bandCount = pTmpSrc->GetRasterCount();
+//	//reInit data
+//	m_pTransRegion->clear();
+//	SetArrayVal<bool>(m_visited, m_sizeX*m_sizeY, false);
+//
+//	ReadData(pTmpSrc,m_sizeX, m_sizeY, m_bandCount);
+//	Img2Grey(m_ppImgVal, DEFAULT_MIN_GREYTH, DEFAULT_MAX_GREYTH);
+//	
+//	pixelArray::iterator it = m_pSeeds->begin();
+//	vector<pixel_loc_t> *pCurMax = NULL;
+//	while (it != m_pSeeds->end()){
+//		vector<pixel_loc_t> *pRegion = Grey_RegionGrowth(m_pGrey, m_sizeX, m_sizeY, *it, m_pNoises, 10, m_visited);
+//		if (pRegion){
+//			if (pCurMax == NULL) { pCurMax = pRegion; }
+//			else if (pCurMax->size() < pRegion->size()){
+//				delete pCurMax;
+//				pCurMax = pRegion;
+//			}
+//			else{
+//				delete pRegion;
+//			}
+//		}
+//		++it;
+//	}
+//	m_pTransRegion->insert(m_pTransRegion->end(), pCurMax->begin(), pCurMax->end());
+//	if (m_pTransRegion->size() == 0) return 0;//nothing to do
+//	if (m_bandCount == 4){
+//		GDALRasterBand *pBand = pTmpSrc->GetRasterBand(4);
+//		pBand->RasterIO(GF_Read, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[3], m_sizeX, m_sizeY,pBand->GetRasterDataType(),0,0);
+//	}
+//	else{
+//		SetArrayVal<T>(m_ppImgVal[3], m_sizeX*m_sizeY, MaxOfT<T>());
+//	}
+//	handleTransparentBand(m_ppImgVal[3], m_sizeX, m_sizeY, m_pTransRegion);
+//	const char*pFilename = pTmpSrc->GetDescription();
+//	char *pTmpTiffPath = new char[strlen(pFilename) + 1];
+//	makeTmpFilename(pFilename, pTmpTiffPath);
+//	GDALDataType gdt = pTmpSrc->GetRasterBand(1)->GetRasterDataType();
+//	GDALDriver*pTifDriv = GetGDALDriverManager()->GetDriverByName("GTiff");
+//	GDALDataset*pTiff = pTifDriv->Create(pTmpTiffPath, m_sizeX, m_sizeY, 4, gdt, NULL);
+//	for (int i = 0; i < 4; ++i){
+//		pTiff->GetRasterBand(i + 1)->RasterIO(GF_Write, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[i], m_sizeX, m_sizeY, gdt, 0, 0);
+//	}
+//	
+//	GDALDataset*pResPng = pTiff->GetDriver()->CreateCopy(pFilename, pTiff, FALSE, NULL, NULL, NULL);
+//	GDALClose(pTiff);
+//	CPLErr retcode = GetGDALDriverManager()->GetDriverByName("GTiff")->Delete(pTmpTiffPath);
+//	if (retcode != CE_None)
+//		remove(pTmpTiffPath);
+//	pSrc = pResPng;
+//	pSrc->FlushCache();
+//	//GDALClose(pTmpSrc);
+//	
+//	return 0;
+//}
 
-	ReadData(pTmpSrc,m_sizeX, m_sizeY, m_bandCount);
-	Img2Grey(DEFAULT_MIN_GREYTH, DEFAULT_MAX_GREYTH);
-	
-	pixelArray::iterator it = m_pSeeds->begin();
-	vector<pixel_loc_t> *pCurMax = NULL;
-	while (it != m_pSeeds->end()){
-		vector<pixel_loc_t> *pRegion = Grey_RegionGrowth(m_pGrey, m_sizeX, m_sizeY, *it, m_pNoises, 10, m_visited);
-		if (pRegion){
-			if (pCurMax == NULL) { pCurMax = pRegion; }
-			else if (pCurMax->size() < pRegion->size()){
-				delete pCurMax;
-				pCurMax = pRegion;
-			}
-			else{
-				delete pRegion;
-			}
-		}
-		++it;
-	}
-	m_pTransRegion->insert(m_pTransRegion->end(), pCurMax->begin(), pCurMax->end());
-	if (m_pTransRegion->size() == 0) return 0;//nothing to do
-	if (m_bandCount == 4){
-		GDALRasterBand *pBand = pTmpSrc->GetRasterBand(4);
-		pBand->RasterIO(GF_Read, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[3], m_sizeX, m_sizeY,pBand->GetRasterDataType(),0,0);
-	}
-	else{
-		SetArrayVal<T>(m_ppImgVal[3], m_sizeX*m_sizeY, MaxOfT<T>());
-	}
-	handleTransparentBand(m_ppImgVal[3], m_sizeX, m_sizeY, m_pTransRegion);
-	const char*pFilename = pTmpSrc->GetDescription();
-	char *pTmpTiffPath = new char[strlen(pFilename) + 1];
-	makeTmpFilename(pFilename, pTmpTiffPath);
-	GDALDataType gdt = pTmpSrc->GetRasterBand(1)->GetRasterDataType();
-	GDALDriver*pTifDriv = GetGDALDriverManager()->GetDriverByName("GTiff");
-	GDALDataset*pTiff = pTifDriv->Create(pTmpTiffPath, m_sizeX, m_sizeY, 4, gdt, NULL);
-	for (int i = 0; i < 4; ++i){
-		pTiff->GetRasterBand(i + 1)->RasterIO(GF_Write, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[i], m_sizeX, m_sizeY, gdt, 0, 0);
-	}
-	
-	GDALDataset*pResPng = pTiff->GetDriver()->CreateCopy(pFilename, pTiff, FALSE, NULL, NULL, NULL);
-	GDALClose(pTiff);
-	CPLErr retcode = GetGDALDriverManager()->GetDriverByName("GTiff")->Delete(pTmpTiffPath);
-	if (retcode != CE_None)
-		remove(pTmpTiffPath);
-	pSrc = pResPng;
-	pSrc->FlushCache();
-	//GDALClose(pTmpSrc);
-	
-	return 0;
-}
-
 template<typename T>
-void WHU::TranspEdge<T>::Img2Grey(T min,T max){
+void WHU::TranspEdge<T>::Img2Grey(T**ppVal,T min,T max){
 	for (int i = 0; i < m_sizeX*m_sizeY; ++i){
-		T grey = (m_ppImgVal[0][i] * 38 + m_ppImgVal[1][i] * 75 + m_ppImgVal[2][i] * 15) >> 7;
+		T grey = (ppVal[0][i] * 38 + ppVal[1][i] * 75 + ppVal[2][i] * 15) >> 7;
 		m_pGrey[i] = grey<min || grey >max ? MaxOfT<T>() :grey ;
 	}
 }
@@ -321,7 +323,7 @@ bool WHU::TranspEdge<T>::handleTransparentBand(T* pBandVal, int sizeX, int sizeY
 
 template<typename T>
 void WHU::TranspEdge<T>::Close(){
-	if (m_ppImgVal){
+	/*if (m_ppImgVal){
 		for (int i = 0; i < 4; ++i){
 			if (m_ppImgVal[i])
 				CPLFree(m_ppImgVal[i]);
@@ -329,7 +331,7 @@ void WHU::TranspEdge<T>::Close(){
 		}
 		delete[]m_ppImgVal;
 		m_ppImgVal = NULL;
-	}
+	}*/
 	if (m_pGrey){
 		CPLFree(m_pGrey);
 		m_pGrey = NULL;
@@ -365,6 +367,57 @@ bool WHU::TranspEdge<T>::Grey_IsNoise(vector<T>*pNoises, T *grey){
 		else ++it;
 	}
 	return false;
+}
+
+template<typename T>
+int WHU::TranspEdge<T>::TransparentEdge(T*&pBuffer, int& nLength){
+	return TransparentEdge(pBuffer,nLength,m_sizeX,m_sizeY);
+}
+
+template<typename T>
+int WHU::TranspEdge<T>::TransparentEdge(T*&pBuffer, int& nLength, int sizeX, int sizeY){
+	m_sizeX = sizeX;
+	m_sizeY = sizeY;
+	m_pTransRegion->clear();
+	SetArrayVal<bool>(m_visited, m_sizeX*m_sizeY, false);
+	m_bandCount = nLength / (sizeX*sizeY);
+	T *ppVal[4];
+	for (int i = 0; i < m_bandCount; ++i){
+		ppVal[i] = pBuffer + i*(sizeX*sizeY);
+	}
+	Img2Grey(ppVal, DEFAULT_MIN_GREYTH, DEFAULT_MAX_GREYTH);
+	pixelArray::iterator it = m_pSeeds->begin();
+	vector<pixel_loc_t> *pCurMax = NULL;
+	while (it != m_pSeeds->end()){
+		vector<pixel_loc_t> *pRegion = Grey_RegionGrowth(m_pGrey, m_sizeX, m_sizeY, *it, m_pNoises, 10, m_visited);
+		if (pRegion){
+			if (pCurMax == NULL) { pCurMax = pRegion; }
+			else if (pCurMax->size() < pRegion->size()){
+				delete pCurMax;
+				pCurMax = pRegion;
+			}
+			else{
+				delete pRegion;
+			}
+		}
+		++it;
+	}
+	m_pTransRegion->insert(m_pTransRegion->end(), pCurMax->begin(), pCurMax->end());
+	if (m_pTransRegion->size() == 0) return 0;//nothing to do
+	if (m_bandCount == 4){
+		ppVal[3] = pBuffer + 3 * (m_sizeX*m_sizeY);
+		handleTransparentBand(ppVal[3], m_sizeX, m_sizeY, m_pTransRegion);
+	}
+	else{
+		T *pNewBuffer = (T*)CPLMalloc(m_sizeX*m_sizeY*4);
+		memcpy_s(pNewBuffer, m_sizeX*m_sizeY*3, pBuffer, m_sizeX*m_sizeY*3);
+		SetArrayVal<T>(pNewBuffer + 3 * m_sizeX*m_sizeY, m_sizeX*m_sizeY, MaxOfT<T>());//此处算法可优化
+		handleTransparentBand(pNewBuffer + 3 * m_sizeX*m_sizeY, m_sizeX, m_sizeY, m_pTransRegion);
+		CPLFree(pBuffer);
+		pBuffer = pNewBuffer;
+		nLength = m_sizeX*m_sizeY * 4;
+	}
+	return 0;
 }
 
 template<typename T>
