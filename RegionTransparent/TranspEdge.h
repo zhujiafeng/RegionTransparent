@@ -38,6 +38,14 @@ namespace WHU{
 		TranspEdge();
 		TranspEdge(int sizeX, int sizeY);
 		bool InitImageSize(int sizeX, int sizeY);
+		template<typename T1,typename T2>
+		T2 * ConvertDataType(T1*pBuffer, int nLength){
+			CPLAssert(sizeof(T2) == sizeof(T1));
+			T2 *pTmp = new T2[nLength];
+			memcpy_s(pTmp, sizeof(T2)*nLength, pBuffer, sizeof(T1)*nLength);
+			delete[]pBuffer;
+			return pTmp;
+		}
 		//int TransparentEdge(GDALDataset*&pSrc,int minRegSize=DEFAULT_MIN_REG_SIZE);
 		int TransparentEdge(T *&pBuffer, int& nLength);
 		int TransparentEdge(T *&pBuffer, int& nLength, int sizeX, int sizeY);

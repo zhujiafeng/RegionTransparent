@@ -4,28 +4,36 @@ using namespace std;
 #include "gdal_utils.h"
 int main(void){
 	
-		typedef unsigned char T;
-		const char*pFilename = "D:\\TU\\TE_Data\\5.png";
-		//const char*pFilename2 = "D:\\TU\\TE_Data\\1.png";
-		GDALAllRegister();
-		GDALDataset*pSrc,*pSrc2;
-		pSrc = (GDALDataset*)GDALOpen(pFilename, GA_ReadOnly);
-		T** ppVal=ReadData<T>(pSrc);
-		int sizeX = pSrc->GetRasterXSize();
-		int sizeY = pSrc->GetRasterYSize();
-		int bandCount = pSrc->GetRasterCount();
-		T*pBuffer = new T[sizeX*sizeY*bandCount];
-		for (int i = 0; i < bandCount; ++i)
-			memcpy_s(pBuffer + i*(sizeX*sizeY), sizeX*sizeY, ppVal[i], sizeX*sizeY);
-		int nLength = bandCount*sizeX*sizeY;
+		//typedef unsigned char T;
+		//const char*pFilename = "D:\\TU\\TE_Data\\5.png";
+		////const char*pFilename2 = "D:\\TU\\TE_Data\\1.png";
+		//GDALAllRegister();
+		//GDALDataset*pSrc,*pSrc2;
+		//pSrc = (GDALDataset*)GDALOpen(pFilename, GA_ReadOnly);
+		//T** ppVal=ReadData<T>(pSrc);
+		//int sizeX = pSrc->GetRasterXSize();
+		//int sizeY = pSrc->GetRasterYSize();
+		//int bandCount = pSrc->GetRasterCount();
+		//T*pBuffer = new T[sizeX*sizeY*bandCount];
+		//for (int i = 0; i < bandCount; ++i)
+		//	memcpy_s(pBuffer + i*(sizeX*sizeY), sizeX*sizeY, ppVal[i], sizeX*sizeY);
+		//int nLength = bandCount*sizeX*sizeY;
 
-		//TransparentEdge<T>(pSrc, 50);
-		WHU::TranspEdge<T> te;
-		te.InitImageSize(pSrc->GetRasterXSize(), pSrc->GetRasterYSize());
-		//te.TransparentEdge(pSrc);
-		te.TransparentEdge(pBuffer,nLength);
-		//te.TransparentEdge(pSrc);
-		te.Close();
+		////TransparentEdge<T>(pSrc, 50);
+		//WHU::TranspEdge<T> te;
+		//te.InitImageSize(pSrc->GetRasterXSize(), pSrc->GetRasterYSize());
+		////te.TransparentEdge(pSrc);
+		//te.TransparentEdge(pBuffer,nLength);
+		////te.TransparentEdge(pSrc);
+		//te.Close();
+	WHU::TranspEdge<unsigned char> te;
+	char*pBuffer = new char[100];
+	for (int i = 0; i < 100; ++i)
+		pBuffer[i] = -i;
+	unsigned char*p = te.ConvertDataType<char, unsigned char>(pBuffer, 100);
+	for (int i = 0; i < 100; ++i) cout << (int)p[i] << endl; cout << endl;
+	char *p2 = te.ConvertDataType<unsigned char, char>(p, 100);
+	for (int i = 0; i < 100; ++i) cout << (int)p2[i] << endl;
 	return 0;
 }
 
