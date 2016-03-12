@@ -10,6 +10,8 @@ namespace WHU{
 	#define DEFAULT_MIN_REG_SIZE 50
 #define DEFAULT_MIN_GREYTH 35
 #define DEFAULT_MAX_GREYTH 220
+#define SUFFIX_PNG "png"
+#define SUFFIX_TIFF "tif"
 	typedef struct pixel_rgb{
 		int red;
 		int green;
@@ -45,7 +47,7 @@ namespace WHU{
 		virtual ~TranspEdge();
 	private:
 		void ReadData(GDALDataset*pSrc, int sizeX,int sizeY,int bandCount);
-		bool makeTmpFilename(const char* pFile, char*&pNew);
+		bool makeTmpFilename(const char* pFile, char*&pNew,const char*pSuffix);
 		vector<pixel_loc_t> * Grey_RegionGrowth(T* pImgVal, int sizeX, int sizeY, pixel_loc_t seed, vector<T>*pNoises, int minRegSize, bool* visited);
 		void Img2Grey(T min,T max);
 		bool InitImgValArray(int sizeX,int sizeY);
@@ -193,7 +195,9 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	handleTransparentBand(m_ppImgVal[3], m_sizeX, m_sizeY, m_pTransRegion);
 	const char*pFilename = pTmpSrc->GetDescription();
 	char *pTmpTiffPath = new char[strlen(pFilename) + 1];
-	makeTmpFilename(pFilename, pTmpTiffPath);
+	char *pTmpPngPath = new char[strlen(pFilename) + 1];
+	makeTmpFilename(pFilename, pTmpTiffPath,SUFFIX_TIFF);
+	makeTmpFilename(pFilename, pTmpPngPath, SUFFIX_PNG);
 	GDALDataType gdt = pTmpSrc->GetRasterBand(1)->GetRasterDataType();
 	GDALDriver*pTifDriv = GetGDALDriverManager()->GetDriverByName("GTiff");
 	GDALDataset*pTiff = pTifDriv->Create(pTmpTiffPath, m_sizeX, m_sizeY, 4, gdt, NULL);
@@ -201,7 +205,7 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 		pTiff->GetRasterBand(i + 1)->RasterIO(GF_Write, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[i], m_sizeX, m_sizeY, gdt, 0, 0);
 	}
 	
-	GDALDataset*pResPng = pTiff->GetDriver()->CreateCopy(pFilename, pTiff, FALSE, NULL, NULL, NULL);
+	GDALDataset*pResPng = pTiff->GetDriver()->CreateCopy(pTmpPngPath, pTiff, FALSE, NULL, NULL, NULL);
 	GDALClose(pTiff);
 	CPLErr retcode = GetGDALDriverManager()->GetDriverByName("GTiff")->Delete(pTmpTiffPath);
 	if (retcode != CE_None)
@@ -209,7 +213,9 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	pSrc = pResPng;
 	pSrc->FlushCache();
 	//GDALClose(pTmpSrc);
-	
+	//free
+	delete[]pTmpTiffPath;
+	delete[]pTmpPngPath;
 	return 0;
 }
 
@@ -368,10 +374,10 @@ bool WHU::TranspEdge<T>::Grey_IsNoise(vector<T>*pNoises, T *grey){
 }
 
 template<typename T>
-bool WHU::TranspEdge<T>::makeTmpFilename(const char* pFile, char*&pNew){
+bool WHU::TranspEdge<T>::makeTmpFilename(const char* pFile, char*&pNew,const char *pSuffix){
 	string str = string(pFile);
 	if (!pNew) pNew = new char[str.length() + 1];
 	size_t pos = str.find_last_of('.');
-	strcpy_s(pNew, str.length() + 1, str.replace(pos, size_t(4), ".tif").c_str());
+	strcpy_s(pNew, str.length() + 1, str.replace(pos, size_t(4), pSuffix).c_str());
 	return true;
 }
