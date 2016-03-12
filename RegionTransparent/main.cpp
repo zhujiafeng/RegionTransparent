@@ -4,7 +4,7 @@ using namespace std;
 int main(void){
 	
 		typedef unsigned char T;
-		const char*pFilename = "D:\\TU\\TE_Data\\4.png";
+		const char*pFilename = "D:\\TU\\TE_Data\\C71.jpg";
 		//const char*pFilename2 = "D:\\TU\\TE_Data\\1.png";
 		GDALAllRegister();
 		GDALDataset*pSrc,*pSrc2;

@@ -7,11 +7,11 @@
 using namespace std;
 
 namespace WHU{
-	#define DEFAULT_MIN_REG_SIZE 50
+#define DEFAULT_MIN_REG_SIZE 50
 #define DEFAULT_MIN_GREYTH 35
 #define DEFAULT_MAX_GREYTH 220
-#define SUFFIX_PNG "png"
-#define SUFFIX_TIFF "tif"
+#define SUFFIX_PNG ".png"
+#define SUFFIX_TIFF ".tif"
 	typedef struct pixel_rgb{
 		int red;
 		int green;
@@ -29,8 +29,8 @@ namespace WHU{
 		pixel_location(int x, int y) :x(x), y(y)
 		{}
 	}pixel_loc_t;
-	
-	
+
+
 	template<typename T>
 	class TranspEdge
 	{
@@ -40,17 +40,17 @@ namespace WHU{
 		TranspEdge();
 		TranspEdge(int sizeX, int sizeY);
 		bool InitImageSize(int sizeX, int sizeY);
-		int TransparentEdge(GDALDataset*&pSrc,int minRegSize=DEFAULT_MIN_REG_SIZE);
+		int TransparentEdge(GDALDataset*&pSrc, int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//TranspEdge(GDALDataset*pDataset, int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//int Initialize();
 		void Close();
 		virtual ~TranspEdge();
 	private:
-		void ReadData(GDALDataset*pSrc, int sizeX,int sizeY,int bandCount);
-		bool makeTmpFilename(const char* pFile, char*&pNew,const char*pSuffix);
+		void ReadData(GDALDataset*pSrc, int sizeX, int sizeY, int bandCount);
+		bool makeTmpFilename(const char* pFile, char*&pNew, const char*pSuffix);
 		vector<pixel_loc_t> * Grey_RegionGrowth(T* pImgVal, int sizeX, int sizeY, pixel_loc_t seed, vector<T>*pNoises, int minRegSize, bool* visited);
-		void Img2Grey(T min,T max);
-		bool InitImgValArray(int sizeX,int sizeY);
+		void Img2Grey(T min, T max);
+		bool InitImgValArray(int sizeX, int sizeY);
 		bool InitVectors(int sizeX, int sizeY);
 		bool InitVisitedArray(int sizeX, int sizeY, bool defVal = false);
 		bool handleTransparentBand(T* pBandVal, int sizeX, int sizeY, vector<WHU::pixel_loc_t>* pPointArray);
@@ -61,7 +61,7 @@ namespace WHU{
 				pArray[i] = setVal;
 			return true;
 		};
-		
+
 	private:
 		T ** m_ppImgVal;  //图像值
 		T * m_pGrey;   //经处理的中间灰度图像
@@ -96,7 +96,7 @@ template<typename T>
 WHU::TranspEdge<T>::TranspEdge(int sizeX, int sizeY)
 {
 	InitImageSize(sizeX, sizeY);
-	m_IsInited=true;
+	m_IsInited = true;
 }
 
 template<typename T>
@@ -131,18 +131,18 @@ bool WHU::TranspEdge<T>::InitVectors(int sizeX, int sizeY){
 	m_pSeeds->push_back(pixel_loc_t(0, 0));
 	m_pSeeds->push_back(pixel_loc_t(sizeX - 1, 0));
 	m_pSeeds->push_back(pixel_loc_t(0, sizeY - 1));
-	m_pSeeds->push_back(pixel_loc_t(sizeX-1, sizeY-1));
+	m_pSeeds->push_back(pixel_loc_t(sizeX - 1, sizeY - 1));
 	m_pTransRegion = new pixelArray();
 	return true;
 }
 
 template<typename T>
 void WHU::TranspEdge<T>::ReadData(GDALDataset*pSrc, int sizeX, int sizeY, int bandCount){
-		T **ppVal = m_ppImgVal;
-		for (int i = 0; i < bandCount; ++i){
-			GDALRasterBand *pBand = pSrc->GetRasterBand(i + 1);
-			pBand->RasterIO(GF_Read, 0, 0, sizeX, sizeY, ppVal[i], sizeX, sizeY, pBand->GetRasterDataType(), 0, 0);
-		}
+	T **ppVal = m_ppImgVal;
+	for (int i = 0; i < bandCount; ++i){
+		GDALRasterBand *pBand = pSrc->GetRasterBand(i + 1);
+		pBand->RasterIO(GF_Read, 0, 0, sizeX, sizeY, ppVal[i], sizeX, sizeY, pBand->GetRasterDataType(), 0, 0);
+	}
 }
 
 template<typename T>
@@ -164,9 +164,9 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	m_pTransRegion->clear();
 	SetArrayVal<bool>(m_visited, m_sizeX*m_sizeY, false);
 
-	ReadData(pTmpSrc,m_sizeX, m_sizeY, m_bandCount);
+	ReadData(pTmpSrc, m_sizeX, m_sizeY, m_bandCount);
 	Img2Grey(DEFAULT_MIN_GREYTH, DEFAULT_MAX_GREYTH);
-	
+
 	pixelArray::iterator it = m_pSeeds->begin();
 	vector<pixel_loc_t> *pCurMax = NULL;
 	while (it != m_pSeeds->end()){
@@ -187,7 +187,7 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	if (m_pTransRegion->size() == 0) return 0;//nothing to do
 	if (m_bandCount == 4){
 		GDALRasterBand *pBand = pTmpSrc->GetRasterBand(4);
-		pBand->RasterIO(GF_Read, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[3], m_sizeX, m_sizeY,pBand->GetRasterDataType(),0,0);
+		pBand->RasterIO(GF_Read, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[3], m_sizeX, m_sizeY, pBand->GetRasterDataType(), 0, 0);
 	}
 	else{
 		SetArrayVal<T>(m_ppImgVal[3], m_sizeX*m_sizeY, MaxOfT<T>());
@@ -196,7 +196,7 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	const char*pFilename = pTmpSrc->GetDescription();
 	char *pTmpTiffPath = new char[strlen(pFilename) + 1];
 	char *pTmpPngPath = new char[strlen(pFilename) + 1];
-	makeTmpFilename(pFilename, pTmpTiffPath,SUFFIX_TIFF);
+	makeTmpFilename(pFilename, pTmpTiffPath, SUFFIX_TIFF);
 	makeTmpFilename(pFilename, pTmpPngPath, SUFFIX_PNG);
 	GDALDataType gdt = pTmpSrc->GetRasterBand(1)->GetRasterDataType();
 	GDALDriver*pTifDriv = GetGDALDriverManager()->GetDriverByName("GTiff");
@@ -204,34 +204,39 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	for (int i = 0; i < 4; ++i){
 		pTiff->GetRasterBand(i + 1)->RasterIO(GF_Write, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[i], m_sizeX, m_sizeY, gdt, 0, 0);
 	}
-	
+
 	GDALDataset*pResPng = pTiff->GetDriver()->CreateCopy(pTmpPngPath, pTiff, FALSE, NULL, NULL, NULL);
 	GDALClose(pTiff);
-	CPLErr retcode = GetGDALDriverManager()->GetDriverByName("GTiff")->Delete(pTmpTiffPath);
-	if (retcode != CE_None)
+	GDALClose(pSrc);
+	CPLErr retcode1 = GetGDALDriverManager()->GetDriverByName("GTiff")->Delete(pTmpTiffPath);
+	//CPLErr retcode2 = pTmpSrc->GetDriver()->Delete(pFilename);
+	if (retcode1 != CE_None)
 		remove(pTmpTiffPath);
+	//if (retcode2 != CE_None)
+		remove(pFilename);
 	pSrc = pResPng;
 	pSrc->FlushCache();
 	//GDALClose(pTmpSrc);
 	//free
 	delete[]pTmpTiffPath;
 	delete[]pTmpPngPath;
+	//delete[]pFilename;
 	return 0;
 }
 
 template<typename T>
-void WHU::TranspEdge<T>::Img2Grey(T min,T max){
+void WHU::TranspEdge<T>::Img2Grey(T min, T max){
 	for (int i = 0; i < m_sizeX*m_sizeY; ++i){
 		T grey = (m_ppImgVal[0][i] * 38 + m_ppImgVal[1][i] * 75 + m_ppImgVal[2][i] * 15) >> 7;
-		m_pGrey[i] = grey<min || grey >max ? MaxOfT<T>() :grey ;
+		m_pGrey[i] = grey<min || grey >max ? MaxOfT<T>() : grey;
 	}
 }
 
 template<typename T>
 T MaxOfT(){
-	int x = sizeof(T)*8;
+	int x = sizeof(T)* 8;
 	int x2 = 1 << x;
-	return (1 << sizeof(T)*8)-1;
+	return (1 << sizeof(T)* 8) - 1;
 }
 
 template<typename T>
@@ -308,7 +313,7 @@ vector<WHU::pixel_loc_t> * WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int
 	}
 	delete pixQueue;
 	pixQueue = NULL;
-	if (minRegSize==-1 || pArray->size() >= minRegSize)
+	if (minRegSize == -1 || pArray->size() >= minRegSize)
 		return pArray;
 	else
 		return NULL;
@@ -374,7 +379,7 @@ bool WHU::TranspEdge<T>::Grey_IsNoise(vector<T>*pNoises, T *grey){
 }
 
 template<typename T>
-bool WHU::TranspEdge<T>::makeTmpFilename(const char* pFile, char*&pNew,const char *pSuffix){
+bool WHU::TranspEdge<T>::makeTmpFilename(const char* pFile, char*&pNew, const char *pSuffix){
 	string str = string(pFile);
 	if (!pNew) pNew = new char[str.length() + 1];
 	size_t pos = str.find_last_of('.');
