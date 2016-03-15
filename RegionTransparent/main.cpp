@@ -4,16 +4,12 @@ using namespace std;
 int main(void){
 	
 		typedef unsigned char T;
-		const char*pFilename = "D:\\TU\\TE_Data\\C71.jpg";
-		//const char*pFilename2 = "D:\\TU\\TE_Data\\1.png";
-		GDALAllRegister();
-		GDALDataset*pSrc,*pSrc2;
-		pSrc = (GDALDataset*)GDALOpen(pFilename, GA_ReadOnly);
+		const char*pFilename = "D:\\TU\\TE_Data\\C69.jpg";
 		//TransparentEdge<T>(pSrc, 50);
 		WHU::TranspEdge<T> te;
-		te.InitImageSize(pSrc->GetRasterXSize(), pSrc->GetRasterYSize());
+		te.InitImageSize(256, 256);
 		//te.TransparentEdge(pSrc);
-		te.TransparentEdge(pSrc);
+		te.TransparentEdge(pFilename);
 		te.Close();
 	return 0;
 }

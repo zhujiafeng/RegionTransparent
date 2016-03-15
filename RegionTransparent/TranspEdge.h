@@ -41,6 +41,7 @@ namespace WHU{
 		TranspEdge(int sizeX, int sizeY);
 		bool InitImageSize(int sizeX, int sizeY);
 		int TransparentEdge(GDALDataset*&pSrc, int minRegSize = DEFAULT_MIN_REG_SIZE);
+		int TransparentEdge(const char*pFilename, int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//TranspEdge(GDALDataset*pDataset, int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//int Initialize();
 		void Close();
@@ -157,6 +158,15 @@ bool WHU::TranspEdge<T>::InitImageSize(int sizeX, int sizeY){
 }
 
 template<typename T>
+int WHU::TranspEdge<T>::TransparentEdge(const char*pFilename, int minRegSize = DEFAULT_MIN_REG_SIZE){
+	GDALAllRegister();
+	GDALDataset*pDataset = (GDALDataset*)GDALOpen(pFilename, GA_ReadOnly);
+	int ret = TransparentEdge(pDataset, minRegSize);
+	GDALClose(pDataset);
+	return ret;
+}
+
+template<typename T>
 int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	GDALDataset*pTmpSrc = pSrc;
 	m_bandCount = pTmpSrc->GetRasterCount();
@@ -196,6 +206,8 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	const char*pFilename = pTmpSrc->GetDescription();
 	char *pTmpTiffPath = new char[strlen(pFilename) + 1];
 	char *pTmpPngPath = new char[strlen(pFilename) + 1];
+	char *pCurFilename = new char[strlen(pFilename) + 1];
+	strcpy_s(pCurFilename, strlen(pFilename) + 1, pFilename);
 	makeTmpFilename(pFilename, pTmpTiffPath, SUFFIX_TIFF);
 	makeTmpFilename(pFilename, pTmpPngPath, SUFFIX_PNG);
 	GDALDataType gdt = pTmpSrc->GetRasterBand(1)->GetRasterDataType();
@@ -204,23 +216,24 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	for (int i = 0; i < 4; ++i){
 		pTiff->GetRasterBand(i + 1)->RasterIO(GF_Write, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[i], m_sizeX, m_sizeY, gdt, 0, 0);
 	}
-
+	//关闭、删除原文件
+	GDALDriver *pOriDiver = GetGDALDriverManager()->GetDriverByName(pTmpSrc->GetDriver()->GetDescription());
+	GDALClose(pTmpSrc);
+	pOriDiver->Delete(pCurFilename);
+	//创建新文件
 	GDALDataset*pResPng = pTiff->GetDriver()->CreateCopy(pTmpPngPath, pTiff, FALSE, NULL, NULL, NULL);
+	//删除临时文件
 	GDALClose(pTiff);
-	GDALClose(pSrc);
-	CPLErr retcode1 = GetGDALDriverManager()->GetDriverByName("GTiff")->Delete(pTmpTiffPath);
-	//CPLErr retcode2 = pTmpSrc->GetDriver()->Delete(pFilename);
-	if (retcode1 != CE_None)
-		remove(pTmpTiffPath);
-	//if (retcode2 != CE_None)
-		remove(pFilename);
+	CPLErr retcode1 = pTifDriv->Delete(pTmpTiffPath);
+	/*if (retcode2 != CE_None)
+		cout<<remove(pFilename);*/
 	pSrc = pResPng;
 	pSrc->FlushCache();
-	//GDALClose(pTmpSrc);
 	//free
 	delete[]pTmpTiffPath;
 	delete[]pTmpPngPath;
-	//delete[]pFilename;
+	delete[]pCurFilename;
+	delete pCurMax;
 	return 0;
 }
 
