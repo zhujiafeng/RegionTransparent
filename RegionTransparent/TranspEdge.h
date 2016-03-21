@@ -12,6 +12,10 @@ namespace WHU{
 #define DEFAULT_MAX_GREYTH 220
 #define SUFFIX_PNG ".png"
 #define SUFFIX_TIFF ".tif"
+#define ERR_REGION_EMPTY 1
+#define ERR_TIFF_FAIL 2
+#define ERR_PNG_FAIL 3
+#define ERR_FILE_NULL 4
 	typedef struct pixel_rgb{
 		int red;
 		int green;
@@ -168,6 +172,7 @@ int WHU::TranspEdge<T>::TransparentEdge(const char*pFilename, int minRegSize = D
 
 template<typename T>
 int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
+	if (!pSrc) return ERR_FILE_NULL;
 	GDALDataset*pTmpSrc = pSrc;
 	m_bandCount = pTmpSrc->GetRasterCount();
 	//reInit data
@@ -193,6 +198,7 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 		}
 		++it;
 	}
+	if (pCurMax == NULL) return ERR_REGION_EMPTY;
 	m_pTransRegion->insert(m_pTransRegion->end(), pCurMax->begin(), pCurMax->end());
 	if (m_pTransRegion->size() == 0) return 0;//nothing to do
 	if (m_bandCount == 4){
@@ -213,6 +219,7 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	GDALDataType gdt = pTmpSrc->GetRasterBand(1)->GetRasterDataType();
 	GDALDriver*pTifDriv = GetGDALDriverManager()->GetDriverByName("GTiff");
 	GDALDataset*pTiff = pTifDriv->Create(pTmpTiffPath, m_sizeX, m_sizeY, 4, gdt, NULL);
+	if (pTiff == nullptr) return ERR_TIFF_FAIL;
 	for (int i = 0; i < 4; ++i){
 		pTiff->GetRasterBand(i + 1)->RasterIO(GF_Write, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[i], m_sizeX, m_sizeY, gdt, 0, 0);
 	}
@@ -222,13 +229,14 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	pOriDiver->Delete(pCurFilename);
 	//创建新文件
 	GDALDataset*pResPng = pTiff->GetDriver()->CreateCopy(pTmpPngPath, pTiff, FALSE, NULL, NULL, NULL);
+	if (pResPng == nullptr) return ERR_PNG_FAIL;
 	//删除临时文件
 	GDALClose(pTiff);
 	CPLErr retcode1 = pTifDriv->Delete(pTmpTiffPath);
 	/*if (retcode2 != CE_None)
 		cout<<remove(pFilename);*/
 	pSrc = pResPng;
-	pSrc->FlushCache();
+	//pSrc->FlushCache();
 	//free
 	delete[]pTmpTiffPath;
 	delete[]pTmpPngPath;
