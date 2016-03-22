@@ -1,8 +1,25 @@
 using namespace std;
 #include <iostream>
 #include "TranspEdge.h"
+#define _DEBUG
+#ifdef _DEBUG
+#include "MemoryLeak.h"
+#endif
 int main(void){
-	
+	/*_CrtSetBreakAlloc(149);
+	_CrtSetBreakAlloc(476);
+	_CrtSetBreakAlloc(471);
+	_CrtSetBreakAlloc(470);
+
+	_CrtSetBreakAlloc(469);
+	_CrtSetBreakAlloc(464);
+	_CrtSetBreakAlloc(463);
+	_CrtSetBreakAlloc(462);
+	_CrtSetBreakAlloc(457);
+	_CrtSetBreakAlloc(456);*//*
+	_CrtSetBreakAlloc(470);
+	_CrtSetBreakAlloc(463);
+	_CrtSetBreakAlloc(456);*/
 		typedef unsigned char T;
 		const char*pFilename = "D:\\TU\\TE_Data\\C69.jpg";
 		//TransparentEdge<T>(pSrc, 50);
@@ -10,7 +27,10 @@ int main(void){
 		te.InitImageSize(256, 256);
 		//te.TransparentEdge(pSrc);
 		te.TransparentEdge(pFilename);
+		//int *p = new int;
+		
 		te.Close();
+		_CrtDumpMemoryLeaks();
 	return 0;
 }
 
