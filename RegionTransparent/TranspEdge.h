@@ -53,7 +53,7 @@ namespace WHU{
 	private:
 		void ReadData(GDALDataset*pSrc, int sizeX, int sizeY, int bandCount);
 		bool makeTmpFilename(const char* pFile, char*&pNew, const char*pSuffix);
-		vector<pixel_loc_t> * Grey_RegionGrowth(T* pImgVal, int sizeX, int sizeY, pixel_loc_t seed, vector<T>*pNoises, int minRegSize, bool* visited);
+		vector<pixel_loc_t>  Grey_RegionGrowth(T* pImgVal, int sizeX, int sizeY, pixel_loc_t seed, vector<T> Noises, int minRegSize, bool* visited);
 		void Img2Grey(T min, T max);
 		bool InitImgValArray(int sizeX, int sizeY);
 		bool InitVectors(int sizeX, int sizeY);
@@ -75,9 +75,12 @@ namespace WHU{
 		int m_bandCount;    //图像波段数
 		GDALDataset* m_pSrc;//原图像指针
 		int m_minRegSize;//区域阈值
-		greyArray * m_pNoises;//候选噪点值
-		pixelArray * m_pSeeds;//区域生长种子点
-		pixelArray * m_pTransRegion; //需处理区域
+		greyArray  m_vNoises;//候选噪点值
+		pixelArray  m_vSeeds;//区域生长种子点
+		pixelArray  m_vTransRegion; //需处理区域
+		//greyArray * m_pNoises;//候选噪点值
+		//pixelArray * m_pSeeds;//区域生长种子点
+		//pixelArray * m_pTransRegion; //需处理区域
 		bool* m_visited;  //访问控制数组
 		bool m_IsInited;
 	};
@@ -130,14 +133,14 @@ bool WHU::TranspEdge<T>::InitImgValArray(int sizeX, int sizeY){
 
 template<typename T>
 bool WHU::TranspEdge<T>::InitVectors(int sizeX, int sizeY){
-	m_pNoises = new greyArray();
-	m_pNoises->push_back(MaxOfT<T>());
-	m_pSeeds = new pixelArray();
-	m_pSeeds->push_back(pixel_loc_t(0, 0));
-	m_pSeeds->push_back(pixel_loc_t(sizeX - 1, 0));
-	m_pSeeds->push_back(pixel_loc_t(0, sizeY - 1));
-	m_pSeeds->push_back(pixel_loc_t(sizeX - 1, sizeY - 1));
-	m_pTransRegion = new pixelArray();
+	//m_pNoises = new greyArray();m_vSeed.
+	m_vNoises.push_back(MaxOfT<T>());
+	/*m_pSeeds = new pixelArray();*/
+	m_vSeeds.push_back(pixel_loc_t(0, 0));
+	m_vSeeds.push_back(pixel_loc_t(sizeX - 1, 0));
+	m_vSeeds.push_back(pixel_loc_t(0, sizeY - 1));
+	m_vSeeds.push_back(pixel_loc_t(sizeX - 1, sizeY - 1));
+	//m_pTransRegion = new pixelArray();
 	return true;
 }
 
@@ -179,15 +182,25 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	GDALDataset*pTmpSrc = pSrc;
 	m_bandCount = pTmpSrc->GetRasterCount();
 	if (m_bandCount != 3 && m_bandCount != 4) return ERR_LACK_BAND;
-	m_pTransRegion->clear();
+	m_vTransRegion.clear();
 	SetArrayVal<bool>(m_visited, m_sizeX*m_sizeY, false);
 
 	ReadData(pTmpSrc, m_sizeX, m_sizeY, m_bandCount);
 	Img2Grey(DEFAULT_MIN_GREYTH, DEFAULT_MAX_GREYTH);
 
-	pixelArray::iterator it = m_pSeeds->begin();
-	vector<pixel_loc_t> *pCurMax = NULL;
-	while (it != m_pSeeds->end()){
+	pixelArray::iterator it = m_vSeeds.begin();
+	int curMax = -1;
+	while (it != m_vSeeds.end()){
+		vector<pixel_loc_t> Region = Grey_RegionGrowth(m_pGrey, m_sizeX, m_sizeY, *it, m_vNoises, 10, m_visited);
+		int size = Region.size();
+		if (size > curMax){
+			curMax = Region.size();
+			m_vTransRegion.clear();
+			m_vTransRegion.insert(m_vTransRegion.end(), Region.begin(), Region.end());
+		}
+		++it;
+	}
+	/*while (it != m_vSeed.end()){
 		vector<pixel_loc_t> *pRegion = Grey_RegionGrowth(m_pGrey, m_sizeX, m_sizeY, *it, m_pNoises, 10, m_visited);
 		if (pRegion){
 			if (pCurMax == NULL) { pCurMax = pRegion; }
@@ -200,11 +213,11 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 			}
 		}
 		++it;
-	}
-	if (pCurMax == NULL) return ERR_REGION_EMPTY;
-	m_pTransRegion->insert(m_pTransRegion->end(), pCurMax->begin(), pCurMax->end());
-	delete pCurMax;
-	if (m_pTransRegion->size() == 0) return 0;//nothing to do
+	}*/
+	//if (pCurMax == NULL) return ERR_REGION_EMPTY;
+	//m_pTransRegion->insert(m_pTransRegion->end(), pCurMax->begin(), pCurMax->end());
+	//delete pCurMax;
+	if (m_vTransRegion.size() == 0) return 0;//nothing to do
 	if (m_bandCount == 4){
 		GDALRasterBand *pBand = pTmpSrc->GetRasterBand(4);
 		pBand->RasterIO(GF_Read, 0, 0, m_sizeX, m_sizeY, m_ppImgVal[3], m_sizeX, m_sizeY, pBand->GetRasterDataType(), 0, 0);
@@ -212,7 +225,7 @@ int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	else{
 		SetArrayVal<T>(m_ppImgVal[3], m_sizeX*m_sizeY, MaxOfT<T>());
 	}
-	handleTransparentBand(m_ppImgVal[3], m_sizeX, m_sizeY, m_pTransRegion);
+	handleTransparentBand(m_ppImgVal[3], m_sizeX, m_sizeY, &m_vTransRegion);
 	const char*pFilename = pTmpSrc->GetDescription();
 	char *pTmpTiffPath = new char[strlen(pFilename) + 1];
 	char *pTmpPngPath = new char[strlen(pFilename) + 1];
@@ -275,7 +288,7 @@ T MaxOfT(){
 }
 
 template<typename T>
-vector<WHU::pixel_loc_t> * WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int sizeX, int sizeY, pixel_loc_t seed, vector<T>*pNoises, int minRegSize, bool* visited){
+vector<WHU::pixel_loc_t> WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int sizeX, int sizeY, pixel_loc_t seed, vector<T> Noises, int minRegSize, bool* visited){
 	/*pImgVal 图像数据     已经经过灰度变换、阈值处理的灰度图像
 	sizeX,sizeY 图像尺寸
 	seed 初始噪点
@@ -283,25 +296,25 @@ vector<WHU::pixel_loc_t> * WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int
 	minRegSize 区域尺寸阈值
 	visited 访问控制数组
 	*/
-	pixelArray*pArray = new pixelArray;
-	std::queue<pixel_loc_t> *pixQueue = new std::queue<pixel_loc_t>;
-	pixQueue->push(seed);
+	pixelArray Array;
+	std::queue<pixel_loc_t> pixQueue;
+	pixQueue.push(seed);
 	int curIdx = seed.x + seed.y*sizeX;
 	visited[curIdx] = true;
 	/*double regAvg[RGB_BAND_COUNT] = { pImgVal[0][curIdx], pImgVal[1][curIdx], pImgVal[2][curIdx] };
 	double tmpAvg[RGB_BAND_COUNT] = { pImgVal[0][curIdx], pImgVal[1][curIdx], pImgVal[2][curIdx] };*/
-	while (!pixQueue->empty()){
-		pixel_loc_t cur = pixQueue->front();
-		pixQueue->pop();
-		pArray->push_back(cur);
+	while (!pixQueue.empty()){
+		pixel_loc_t cur = pixQueue.front();
+		pixQueue.pop();
+		Array.push_back(cur);
 		/*int validCount = 0;*/
 		int tmpCurIdx = cur.y*sizeX + cur.x;
 		//left
 		if (cur.x - 1 >= 0){
 			int tmpIdx = cur.y*sizeX + cur.x - 1;
-			if (!visited[tmpIdx] && Grey_IsNoise(pNoises, &pImgVal[tmpIdx]))
+			if (!visited[tmpIdx] && Grey_IsNoise(&Noises, &pImgVal[tmpIdx]))
 			{
-				pixQueue->push(pixel_loc_t(cur.x - 1, cur.y));
+				pixQueue.push(pixel_loc_t(cur.x - 1, cur.y));
 				/*for (int i = 0; i < RGB_BAND_COUNT; ++i)
 				tmpAvg[i] = (tmpAvg[i] * (pArray->size() + validCount) + pImgVal[i][tmpIdx]) / (pArray->size() + validCount + 1);*/
 				/*++validCount;*/
@@ -312,8 +325,8 @@ vector<WHU::pixel_loc_t> * WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int
 		//down
 		if (cur.y + 1 < sizeY){
 			int tmpIdx = (cur.y + 1)*sizeX + cur.x;
-			if (!visited[tmpIdx] && Grey_IsNoise(pNoises, &pImgVal[tmpIdx])){
-				pixQueue->push(pixel_loc_t(cur.x, cur.y + 1));
+			if (!visited[tmpIdx] && Grey_IsNoise(&Noises, &pImgVal[tmpIdx])){
+				pixQueue.push(pixel_loc_t(cur.x, cur.y + 1));
 				/*for (int i = 0; i < RGB_BAND_COUNT; ++i)
 				tmpAvg[i] = (tmpAvg[i] * (pArray->size() + validCount) + pImgVal[i][tmpIdx]) / (pArray->size() + validCount + 1);*/
 				/*++validCount;*/
@@ -324,8 +337,8 @@ vector<WHU::pixel_loc_t> * WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int
 		//right
 		if (cur.x + 1 < sizeX){
 			int tmpIdx = (cur.y)*sizeX + cur.x + 1;
-			if (!visited[tmpIdx] && Grey_IsNoise(pNoises, &pImgVal[tmpIdx])){
-				pixQueue->push(pixel_loc_t(cur.x + 1, cur.y));
+			if (!visited[tmpIdx] && Grey_IsNoise(&Noises, &pImgVal[tmpIdx])){
+				pixQueue.push(pixel_loc_t(cur.x + 1, cur.y));
 				/*for (int i = 0; i < RGB_BAND_COUNT; ++i)
 				tmpAvg[i] = (tmpAvg[i] * (pArray->size() + validCount) + pImgVal[i][tmpIdx]) / (pArray->size() + validCount + 1);*/
 				/*++validCount;*/
@@ -335,8 +348,8 @@ vector<WHU::pixel_loc_t> * WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int
 		//up
 		if (cur.y - 1 >= 0){
 			int tmpIdx = (cur.y - 1)*sizeX + cur.x;
-			if (!visited[tmpIdx] && Grey_IsNoise(pNoises, &pImgVal[tmpIdx])){
-				pixQueue->push(pixel_loc_t(cur.x, cur.y - 1));
+			if (!visited[tmpIdx] && Grey_IsNoise(&Noises, &pImgVal[tmpIdx])){
+				pixQueue.push(pixel_loc_t(cur.x, cur.y - 1));
 				/*for (int i = 0; i < RGB_BAND_COUNT; ++i)
 				tmpAvg[i] = (tmpAvg[i] * (pArray->size() + validCount) + pImgVal[i][tmpIdx]) / (pArray->size() + validCount + 1);*/
 				/*++validCount;*/
@@ -346,14 +359,15 @@ vector<WHU::pixel_loc_t> * WHU::TranspEdge<T>::Grey_RegionGrowth(T* pImgVal, int
 		/*for (int i = 0; i < RGBA_BAND_COUNT; ++i)
 		regAvg[i] = tmpAvg[i];*/
 	}
-	delete pixQueue;
-	pixQueue = NULL;
-	if (minRegSize == -1 || pArray->size() >= minRegSize)
+	/*delete pixQueue;
+	pixQueue = NULL;*/
+	/*if (minRegSize == -1 || pArray->size() >= minRegSize)
 		return pArray;
 	else{
 		delete pArray;
 		return NULL;
-	}
+	}*/
+	return Array;
 }
 
 template<typename T>
@@ -361,7 +375,7 @@ bool WHU::TranspEdge<T>::handleTransparentBand(T* pBandVal, int sizeX, int sizeY
 	if (!pPointArray || pPointArray->size() == 0) return false;
 	vector<WHU::pixel_loc_t>::iterator it = pPointArray->begin();
 	while (it != pPointArray->end()){
-		pBandVal[sizeX*it->y + it->x] = 0;
+		pBandVal[sizeX*it->y + it->x] = 0;//set to transparent
 		++it;
 	}
 	return true;
@@ -382,18 +396,18 @@ void WHU::TranspEdge<T>::Close(){
 		CPLFree(m_pGrey);
 		m_pGrey = NULL;
 	}
-	if (m_pNoises){
-		delete m_pNoises;//候选噪点值
-		m_pNoises = NULL;
-	}
-	if (m_pSeeds){
-		delete m_pSeeds;//区域生长种子点
-		m_pSeeds = NULL;
-	}
-	if (m_pTransRegion){
-		delete m_pTransRegion; //需处理区域
-		m_pTransRegion = NULL;
-	}
+	//if (m_pNoises){
+	//	delete m_pNoises;//候选噪点值
+	//	m_pNoises = NULL;
+	//}
+	//if (m_pSeeds){
+	//	delete m_pSeeds;//区域生长种子点
+	//	m_pSeeds = NULL;
+	//}
+	//if (m_pTransRegion){
+	//	delete m_pTransRegion; //需处理区域
+	//	m_pTransRegion = NULL;
+	//}
 	if (m_visited){
 		delete[] m_visited;  //访问控制数组
 		m_visited = NULL;

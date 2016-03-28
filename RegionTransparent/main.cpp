@@ -20,19 +20,25 @@ int main(void){
 	_CrtSetBreakAlloc(470);
 	_CrtSetBreakAlloc(463);
 	_CrtSetBreakAlloc(456);*/
+	_CrtSetBreakAlloc(158);
+	_CrtSetBreakAlloc(154);
+	_CrtSetBreakAlloc(150);
+	_CrtSetBreakAlloc(149);
+	{
 		typedef unsigned char T;
-		const char*pFilename = "D:\\TU\\TE_Data\\C69.jpg";
+		const char*pFilename = "D:\\TU\\TE_Data\\5.png";
 		//TransparentEdge<T>(pSrc, 50);
 		WHU::TranspEdge<T> te;
 		te.InitImageSize(256, 256);
 		//te.TransparentEdge(pSrc);
 		cout << strlen(pFilename) + 1 << endl;
 		char*p = new char[strlen(pFilename) + 1];
-		te.TransparentEdge(pFilename,p);
+		int n = te.TransparentEdge(pFilename, p);
 		//int *p = new int;
 
 		te.Close();
 		delete[] p;
+	}
 		_CrtDumpMemoryLeaks();
 	return 0;
 }
