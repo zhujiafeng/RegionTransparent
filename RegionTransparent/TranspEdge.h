@@ -45,7 +45,7 @@ namespace WHU{
 		TranspEdge(int sizeX, int sizeY);
 		bool InitImageSize(int sizeX, int sizeY);
 		int TransparentEdge(GDALDataset*&pSrc, int minRegSize = DEFAULT_MIN_REG_SIZE);
-		int TransparentEdge(const char*pFilename, int minRegSize = DEFAULT_MIN_REG_SIZE);
+		int TransparentEdge(const char*pFilename, char*& pOutFilename,int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//TranspEdge(GDALDataset*pDataset, int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//int Initialize();
 		void Close();
@@ -162,10 +162,13 @@ bool WHU::TranspEdge<T>::InitImageSize(int sizeX, int sizeY){
 }
 
 template<typename T>
-int WHU::TranspEdge<T>::TransparentEdge(const char*pFilename, int minRegSize = DEFAULT_MIN_REG_SIZE){
+int WHU::TranspEdge<T>::TransparentEdge(const char*pFilename, char*& pOutFilename,int minRegSize = DEFAULT_MIN_REG_SIZE){
 	GDALAllRegister();
 	GDALDataset*pDataset = (GDALDataset*)GDALOpen(pFilename, GA_ReadOnly);
 	int ret = TransparentEdge(pDataset, minRegSize);
+	const char*pCurFilename = pDataset->GetDescription();
+	cout << strlen(pCurFilename) << endl;
+	strcpy_s(pOutFilename, strlen(pCurFilename)+1, pCurFilename);
 	GDALClose(pDataset);
 	return ret;
 }

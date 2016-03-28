@@ -26,10 +26,13 @@ int main(void){
 		WHU::TranspEdge<T> te;
 		te.InitImageSize(256, 256);
 		//te.TransparentEdge(pSrc);
-		te.TransparentEdge(pFilename);
+		cout << strlen(pFilename) + 1 << endl;
+		char*p = new char[strlen(pFilename) + 1];
+		te.TransparentEdge(pFilename,p);
 		//int *p = new int;
-		
+
 		te.Close();
+		delete[] p;
 		_CrtDumpMemoryLeaks();
 	return 0;
 }
