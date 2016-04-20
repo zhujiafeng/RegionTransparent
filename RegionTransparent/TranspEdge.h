@@ -3,6 +3,7 @@
 #include <queue>
 #include <string>
 #include "gdal_priv.h"
+#include <list>
 using namespace std;
 
 namespace WHU{
@@ -48,6 +49,7 @@ namespace WHU{
 		int TransparentEdge(const char*pFilename, char*& pOutFilename,int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//TranspEdge(GDALDataset*pDataset, int minRegSize = DEFAULT_MIN_REG_SIZE);
 		//int Initialize();
+		bool GetSize(int& x, int& y);
 		void Close();
 		virtual ~TranspEdge();
 	private:
@@ -83,9 +85,53 @@ namespace WHU{
 		//pixelArray * m_pTransRegion; //需处理区域
 		bool* m_visited;  //访问控制数组
 		bool m_IsInited;
+		static bool m_bIsVecInited;
 	};
+
+	template<typename T>
+	class TranspEdgePool{
+	public:
+		TranspEdgePool(){};
+		static TranspEdge<T>* getInstance(int sizeX, int sizeY){
+			list<TranspEdge<T>*>::iterator it = m_instanceList.begin();
+			int x, y;
+			while (it != m_instanceList.end()){
+				(*it)->GetSize(x, y);
+				if (x == sizeX && y == sizeY)
+					return (*it);
+				++it;
+			}
+			TranspEdge<T>* pTe=new TranspEdge<T>();
+			pTe->InitImageSize(sizeX, sizeY);
+			m_instanceList.push_back(pTe);
+			return pTe;
+		}
+		~TranspEdgePool(){
+			list<TranspEdge<T>* >::iterator it = m_instanceList.begin();
+			while (it != m_instanceList.end()){
+				delete *it;
+				++it;
+			}
+		}
+	private:
+		static list<TranspEdge<T>*> m_instanceList;
+	};
+
+
 }
 
+template<typename T>
+list<WHU::TranspEdge<T>*> WHU::TranspEdgePool<T>::m_instanceList;
+
+template<typename T>
+bool WHU::TranspEdge<T>::GetSize(int &x, int& y){
+	x = m_sizeX;
+	y = m_sizeY;
+	return true;
+}
+
+template<typename T>
+bool WHU::TranspEdge<T>::m_bIsVecInited = false;
 //template<typename T>
 //WHU::TranspEdge<T>::TranspEdge(GDALDataset*pDataset, int minRegSize)
 //:m_pSrc(pDataset), m_minRegSize(minRegSize)
