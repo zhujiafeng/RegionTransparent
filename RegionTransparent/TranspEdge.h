@@ -103,8 +103,10 @@ namespace WHU{
 			int x, y;
 			while (it != m_instanceList.end()){
 				(*it)->GetSize(x, y);
-				if (x == sizeX && y == sizeY && !(*it)->isLocked())
+				if (x == sizeX && y == sizeY && !(*it)->isLocked()){
+					(*it)->lock();
 					return (*it);
+				}
 				++it;
 			}
 			TranspEdge<T>* pTe=new TranspEdge<T>();
