@@ -31,8 +31,10 @@ int main(void){
 		const WHU::TranspEdgePool<unsigned char>* pIns2 = WHU::TranspEdgePool<unsigned char>::getInstance();
 		WHU::TranspEdge<unsigned char>*p=pIns->getWorker(256, 256);
 		WHU::TranspEdge<unsigned char>*p2 = pIns->getWorker(256, 256);
+		WHU::TranspEdgePool<unsigned char>::releaseWorker(p);
 		WHU::TranspEdge<unsigned char>*p3 = pIns->getWorker(256, 256);
-		p->TransparentEdge("D:\\TU\\TE_Data\\1.png", c, 10);
+		p->TransparentEdge("D:\\TU\\TE_Data\\5.png", c, 10);
+
 		delete[]c;
 	}
 	_CrtDumpMemoryLeaks();

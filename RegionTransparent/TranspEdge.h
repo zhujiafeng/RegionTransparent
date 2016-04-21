@@ -51,6 +51,9 @@ namespace WHU{
 		//int Initialize();
 		bool GetSize(int& x, int& y);
 		void Close();
+		void lock();
+		void unlock();
+		bool isLocked();
 		virtual ~TranspEdge();
 	private:
 		void ReadData(GDALDataset*pSrc, int sizeX, int sizeY, int bandCount);
@@ -85,6 +88,7 @@ namespace WHU{
 		//pixelArray * m_pTransRegion; //需处理区域
 		bool* m_visited;  //访问控制数组
 		bool m_IsInited;
+		int m_InUse;
 		static bool m_bIsVecInited;
 	};
 
@@ -99,14 +103,18 @@ namespace WHU{
 			int x, y;
 			while (it != m_instanceList.end()){
 				(*it)->GetSize(x, y);
-				if (x == sizeX && y == sizeY)
+				if (x == sizeX && y == sizeY && !(*it)->isLocked())
 					return (*it);
 				++it;
 			}
 			TranspEdge<T>* pTe=new TranspEdge<T>();
 			pTe->InitImageSize(sizeX, sizeY);
+			pTe->lock();
 			m_instanceList.push_back(pTe);
 			return pTe;
+		}
+		static void releaseWorker(TranspEdge<T>* pWorker){
+			pWorker->unlock();
 		}
 		~TranspEdgePool(){
 			list<TranspEdge<T>* >::iterator it = m_instanceList.begin();
@@ -153,7 +161,7 @@ bool WHU::TranspEdge<T>::m_bIsVecInited = false;
 
 template<typename T>
 WHU::TranspEdge<T>::TranspEdge()
-:m_IsInited(false)
+:m_IsInited(false), m_InUse(0)
 {
 
 }
@@ -234,6 +242,20 @@ int WHU::TranspEdge<T>::TransparentEdge(const char*pFilename, char*& pOutFilenam
 	return ret;
 }
 
+template<typename T>
+void WHU::TranspEdge<T>::lock(){
+	m_InUse = 1;
+}
+
+template<typename T>
+void WHU::TranspEdge<T>::unlock(){
+	m_InUse = 0;
+}
+
+template<typename T>
+bool WHU::TranspEdge<T>::isLocked(){
+	return m_InUse;
+}
 template<typename T>
 int WHU::TranspEdge<T>::TransparentEdge(GDALDataset*&pSrc, int minRegSize){
 	if (!pSrc) return ERR_FILE_NULL;
