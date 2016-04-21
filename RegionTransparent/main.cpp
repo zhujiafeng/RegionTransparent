@@ -20,14 +20,21 @@ int main(void){
 	WHU::DemResample<float> ds;
 	ds.DemResampling(pOri, pNew);*/
 	{
-	WHU::TranspEdgePool<unsigned char> pool;
-	WHU::TranspEdge<unsigned char>* p = pool.getInstance(256, 256);
-	WHU::TranspEdge<unsigned char>* p2 = pool.getInstance(256, 256);
+	//	//WHU::TranspEdgePool<unsigned char>* pIns = WHU::TranspEdgePool<unsigned char>::getInstance();
 	char *c = new char[30];
-	p->TransparentEdge("D:\\TU\\TE_Data\\9.png", c, 10);
-	p2->TransparentEdge("D:\\TU\\TE_Data\\10.png", c, 10);
-	delete []c;
-	return 0;
+	//WHU::TranspEdge<unsigned char>* pWorker = pIns->getWorker(256, 256);
+	//pWorker->TransparentEdge("D:\\TU\\TE_Data\\1.png", c, 10);
+	////pIns->TransparentEdge("D:\\TU\\TE_Data\\10.png", c, 10);
+	//
+	//return 0;
+		const WHU::TranspEdgePool<unsigned char>* pIns = WHU::TranspEdgePool<unsigned char>::getInstance();
+		const WHU::TranspEdgePool<unsigned char>* pIns2 = WHU::TranspEdgePool<unsigned char>::getInstance();
+		WHU::TranspEdge<unsigned char>*p=pIns->getWorker(256, 256);
+		WHU::TranspEdge<unsigned char>*p2 = pIns->getWorker(256, 256);
+		WHU::TranspEdge<unsigned char>*p3 = pIns->getWorker(256, 256);
+		p->TransparentEdge("D:\\TU\\TE_Data\\1.png", c, 10);
+		delete[]c;
 	}
 	_CrtDumpMemoryLeaks();
+	return 0;
 }

@@ -91,8 +91,10 @@ namespace WHU{
 	template<typename T>
 	class TranspEdgePool{
 	public:
-		TranspEdgePool(){};
-		static TranspEdge<T>* getInstance(int sizeX, int sizeY){
+		static const TranspEdgePool<T>* getInstance(){
+			return &m_Instance;
+		}
+		static TranspEdge<T>* getWorker(int sizeX, int sizeY){
 			list<TranspEdge<T>*>::iterator it = m_instanceList.begin();
 			int x, y;
 			while (it != m_instanceList.end()){
@@ -114,11 +116,21 @@ namespace WHU{
 			}
 		}
 	private:
+		static int cout;
 		static list<TranspEdge<T>*> m_instanceList;
+		static TranspEdgePool<T> m_Instance;
+		TranspEdgePool(){};
+		
 	};
 
 
 }
+
+template<typename T>
+int WHU::TranspEdgePool<T>::cout = 0;
+
+template<typename T>
+WHU::TranspEdgePool<T> WHU::TranspEdgePool<T>::m_Instance;
 
 template<typename T>
 list<WHU::TranspEdge<T>*> WHU::TranspEdgePool<T>::m_instanceList;
